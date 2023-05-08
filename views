@@ -1,0 +1,62 @@
+-- Cenário oficina
+
+-- Número de mecânicos por equipe
+create or replace view qtd_mec
+as select e.nome as Equipe, count(*) as QTD
+from equipe e left join mecanico_pertence_equipe p 
+on e.idEquipe=p.idEquipe
+group by p.idEquipe;
+
+select * from qtd_mec;
+
+-- Lista de veículos e seus proprietários
+create or replace view vei_cli as
+select concat(v.marca,' ',v.modelo,' ', v.ano,' ', v.cor) as Veiculo, 
+v.placa, concat(c.pnome, ' ', c.sobrenome) as Proprietario, 
+concat('(',c.ddd,')',' ',c.telefone) as Telefone from veiculo v right join
+cliente c on c.idCliente=v.idCliente order by c.pnome;
+
+select * from vei_cli;
+
+-- Clientes com maior número de veículos ordenados DESC
+create or replace view mais_veiculos as
+select concat(c.pnome, ' ', c.sobrenome) as Proprietario, 
+concat('(',c.ddd,')',' ',c.telefone) as Telefone, count(*) as QTD from cliente c left join
+veiculo v on c.idCliente=v.idCliente group by v.idCliente order by QTD desc;
+
+select * from mais_veiculos;
+
+-- Lista de ordens de serviços com nome do cliente, veículo e equipe responsável.
+create or replace view detail_os as
+select o.idOrdem as 'Número da OS', concat(c.pnome, ' ',c.sobrenome) as Cliente,
+v.placa, e.nome as Equipe from ordem o inner join cliente c on o.idCliente=c.idCliente inner join
+veiculo v on o.idVeiculo=v.idVeiculo inner join equipe e on
+o.idEquipe=e.idEquipe order by o.idOrdem;
+
+select * from detail_os;
+
+-- Lista ordem de serviço com todos os valores de peças e serviços e valor total da OS
+create or replace view total_os as
+select concat(c.pnome,' ',c.sobrenome) AS CLIENTE,v.placa AS PLACA,
+o.idOrdem AS OS, round(sum(p.valor),2) AS 'PEÇAS',(select round(sum(sb.valor),2)
+ from ((ordem ob join servico sb) join composta_de_servicos cb) where
+ ((cb.idOrdem = ob.idOrdem) and (cb.idServico = sb.idServico) and 
+ (o.idOrdem = ob.idOrdem))) AS SERVIÇOS, round((sum(p.valor) + 
+ (select round(sum(sb.valor),2) from ((ordem ob join servico sb) join 
+ composta_de_servicos cb) where ((cb.idOrdem = ob.idOrdem) and 
+ (cb.idServico = sb.idServico) and (o.idOrdem = ob.idOrdem)))),2) AS TOTAL 
+ from ((((cliente c join veiculo v) join ordem o) join peca p) join 
+ composta_de_pecas cp) where ((cp.idOrdem = o.idOrdem) and (cp.idPeca = p.idPeca)
+ and (o.idCliente = c.idCliente) and (o.idVeiculo = v.idVeiculo)) 
+ group by o.idOrdem;
+ 
+ select * from total_os;
+ 
+ -- Concedendo os privilégios
+ create user 'usuario'@localhost identified by '123456789';
+ grant all privileges on oficina.qtd_mec to'usuario'@localhost;
+ grant all privileges on oficina.mais_veiculos to'usuario'@localhost;
+ grant all privileges on oficina.vei_cli to'usuario'@localhost;
+ grant all privileges on oficina.detail_os to'usuario'@localhost;
+ grant all privileges on oficina.total_os to'usuario'@localhost;
+ 
