@@ -1,0 +1,28 @@
+-- Cenário Oficina
+-- Trigger que salva em outra tabela caso um cliente venha a ser deletado
+ create table cli_removido(
+ id int auto_increment primary key,
+ idCliente int unique,
+ CPF varchar(11),
+ nome varchar(60),
+ email varchar(60)
+ );
+
+ delimiter $$
+ create trigger cliente_removido before delete on cliente
+ for each row
+ begin
+ insert into cli_removido (idCliente, CPF, nome, email) values
+ (old.idCliente, old.cpf, concat(old.pnome, ' ',old.sobrenome), old.email);
+ end $$
+ delimiter ;
+
+-- Vincula um mecânico recem inserido à equipe Alfa por default
+delimiter $$
+ create trigger vincula_mecanico after insert on mecanico
+ for each row
+ begin
+ insert into mecanico_pertence_equipe (idMecanico, idEquipe, data_inclusao, Situacao) values
+ (new.idMecanico, 1, CURDATE(), 'Ativo');
+ end $$
+ delimiter ;
